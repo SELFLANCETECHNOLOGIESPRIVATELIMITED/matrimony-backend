@@ -93,7 +93,7 @@ const chatController = {
       const conversationsWithChattedUser = conversations.map((conversation, index) => ({
         ...conversation.toObject(),
         chattedUser: chattedUsers[index] || null, // Handle null cases
-      }));
+      }))?.reverse();
 
       return res.status(200).json({
         success: true,
