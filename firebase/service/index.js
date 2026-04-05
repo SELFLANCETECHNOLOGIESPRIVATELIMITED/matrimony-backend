@@ -1,4 +1,4 @@
-const admin = require('firebase-admin');
+const admin = require("firebase-admin");
 const { chatTemplatePlaceholder } = require("../utils/metaDataReplacer");
 const {
   chatnotificationsCategories,
@@ -7,10 +7,10 @@ const {
 
 // Check if the app is already initialized
 if (!admin.apps.length) {
-  const serviceAccount = require('../../vaishakhi-matrimony-firebase-adminsdk-mjr6h-8c5dbe20bf.json');
+  const serviceAccount = require("../../vaishakhi-matrimony-firebase-adminsdk-mjr6h-33d857fb90.json");
   admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
-    storageBucket:"gs://vaishakhi-matrimony.appspot.com"
+    storageBucket: "gs://vaishakhi-matrimony.appspot.com",
     // If you're using other Firebase services, include their configs here
   });
 }
@@ -34,18 +34,23 @@ async function sendchatNotification(userId, messageData, senderId) {
       },
       data: {
         senderId: senderId.toString(),
-        screen: messageData.screen || "ChatScreen", 
-        color: messageData.color || "#FFFFFF", 
+        screen: messageData.screen || "ChatScreen",
+        color: messageData.color || "#FFFFFF",
       },
     };
-    console.log("Constructed message object:", JSON.stringify(message, null, 2));
+    console.log(
+      "Constructed message object:",
+      JSON.stringify(message, null, 2),
+    );
 
     const response = await admin.messaging().send(message);
     console.log("Firebase notification sent successfully!", response);
   } catch (err) {
     console.error("Error sending notification:", err);
     if (err.code === "messaging/mismatched-credential") {
-      console.error("SenderId mismatch. Please check your Firebase configuration and FCM token.");
+      console.error(
+        "SenderId mismatch. Please check your Firebase configuration and FCM token.",
+      );
       console.error("Error details:", JSON.stringify(err, null, 2));
     }
   }

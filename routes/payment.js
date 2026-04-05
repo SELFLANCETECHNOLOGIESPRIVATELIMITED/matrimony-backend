@@ -3,11 +3,13 @@ const express = require("express");
 const {
   createOrder,
   verifyPayment,
+  createTestOrder,
 } = require("../controller/paymnetController");
 const { auth } = require("../middlewares/auth");
 const router = express.Router();
 
 router.post("/create-order", auth, createOrder);
+router.post("/create-test-order", auth, createTestOrder);
 
 router.post("/verify-payment", auth, verifyPayment);
 

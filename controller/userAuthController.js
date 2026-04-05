@@ -6,19 +6,19 @@ const User = require("../models/user.js");
 const JWTService = require("../services/JWTService.js");
 const RefreshToken = require("../models/token.js");
 const Subscription = require("../models/subscribtion.js");
-const ResetToken = require("../models/resetToken.js")
+const ResetToken = require("../models/resetToken.js");
 const AccessToken = require("../models/accessToken.js");
 const { sendchatNotification } = require("../firebase/service/index.js");
 const jwt = require("jsonwebtoken");
 const user = require("../models/user.js");
 const Contact = require("../models/contact.js");
 const nodemailer = require("nodemailer");
-const admin = require('firebase-admin');
-const serviceAccount = require('../vaishakhi-matrimony-firebase-adminsdk-mjr6h-8c5dbe20bf.json'); // Replace with the path to your Firebase service account key file
+const admin = require("firebase-admin");
+const serviceAccount = require("../vaishakhi-matrimony-firebase-adminsdk-mjr6h-33d857fb90.json"); // Replace with the path to your Firebase service account key file
 const resetToken = require("../models/resetToken.js");
 
 if (!admin.apps.length) {
-  const serviceAccount = require('../vaishakhi-matrimony-firebase-adminsdk-mjr6h-8c5dbe20bf.json');
+  const serviceAccount = require("../vaishakhi-matrimony-firebase-adminsdk-mjr6h-33d857fb90.json");
   admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
     // If you're using other Firebase services, include their configs here
@@ -118,7 +118,7 @@ const userAuthController = {
 
     const { email, password, fcmToken } = req.body;
     console.log(password);
-    const userEmail = email.toLowerCase()
+    const userEmail = email.toLowerCase();
 
     let user;
 
@@ -164,7 +164,7 @@ const userAuthController = {
           userId: user._id,
         },
         { token: refreshToken },
-        { upsert: true }
+        { upsert: true },
       );
     } catch (error) {
       return next(error);
@@ -176,7 +176,7 @@ const userAuthController = {
           userId: user._id,
         },
         { token: accessToken },
-        { upsert: true }
+        { upsert: true },
       );
     } catch (error) {
       return next(error);
@@ -199,7 +199,6 @@ const userAuthController = {
     if (error) {
       return next(error);
     }
-
 
     try {
       const userRecord = await admin.auth().getUserByEmail(userEmail);
@@ -280,7 +279,7 @@ const userAuthController = {
   //     res.status(500).send("Server Error");
   //   }
   // },
-  
+
   async forgotPassword(req, res, next) {
     const { email } = req.body;
     const forgotPassSchema = Joi.object({
@@ -295,42 +294,45 @@ const userAuthController = {
     try {
       const user = await User.findOne({ email });
       if (!user) {
-        return res.status(400).json({ status: false, message: "User not found" });
+        return res
+          .status(400)
+          .json({ status: false, message: "User not found" });
       }
-  
+
       const otp = Math.floor(1000 + Math.random() * 9000).toString();
       const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 mins
-  
+
       const token = await resetToken.findOneAndUpdate(
         { email },
         { otp, expiresAt },
-        { upsert: true, new: true }
+        { upsert: true, new: true },
       );
-      
-  
+
       const transporter = nodemailer.createTransport({
-        host: 'smtp.hostinger.com',
+        host: "smtp.hostinger.com",
         port: 587,
         secure: false,
         auth: {
-          user: 'info@vaishakhimatrimony.com', // your email address
-          pass: 'K0U$uH!K28' // your app password
+          user: "info@vaishakhimatrimony.com", // your email address
+          pass: "K0U$uH!K28", // your app password
         },
       });
-  
+
       await transporter.sendMail({
         from: "info@vaishakhimatrimony.com",
         to: email,
         subject: "Password Reset OTP",
         text: `Your OTP for password reset is ${otp}.\nRequested at ${new Date().toLocaleString()}`,
       });
-  
-      return res.status(200).json({ status: true, message: "OTP sent to email" });
+
+      return res
+        .status(200)
+        .json({ status: true, message: "OTP sent to email" });
     } catch (error) {
       return next(error);
     }
   },
-  
+
   // Verify OTP
   async verifyResetOTP(req, res, next) {
     const { email, otp } = req.body;
@@ -347,18 +349,19 @@ const userAuthController = {
     try {
       const token = await resetToken.findOne({ email });
       console.log(token);
-      
-  
+
       if (!token || token.expiresAt < new Date()) {
-        return res.status(400).json({ status: false, message: "Invalid or expired OTP" });
+        return res
+          .status(400)
+          .json({ status: false, message: "Invalid or expired OTP" });
       }
-  
+
       return res.status(200).json({ status: true, message: "OTP verified" });
     } catch (error) {
       return next(error);
     }
   },
-  
+
   // Reset password
   async resetPassword(req, res, next) {
     const { email, otp, password } = req.body;
@@ -378,17 +381,20 @@ const userAuthController = {
       const token = await resetToken.findOne({ email });
 
       console.log(token, email, otp);
-      
-  
+
       if (!token || token.expiresAt < new Date()) {
-        return res.status(400).json({ status: false, message: "Invalid or expired OTP" });
+        return res
+          .status(400)
+          .json({ status: false, message: "Invalid or expired OTP" });
       }
-  
+
       const hashedPassword = await bcrypt.hash(password, 10);
       await User.updateOne({ email }, { password: hashedPassword });
       await resetToken.deleteOne({ email }); // remove used OTP
-  
-      return res.status(200).json({ status: true, message: "Password reset successful" });
+
+      return res
+        .status(200)
+        .json({ status: true, message: "Password reset successful" });
     } catch (error) {
       return next(error);
     }
@@ -503,7 +509,7 @@ const userAuthController = {
           userId: user._id,
         },
         { token: refreshToken },
-        { upsert: true }
+        { upsert: true },
       );
     } catch (error) {
       return next(error);
@@ -515,7 +521,7 @@ const userAuthController = {
           userId: user._id,
         },
         { token: accessToken },
-        { upsert: true }
+        { upsert: true },
       );
     } catch (error) {
       return next(error);
@@ -607,7 +613,7 @@ const userAuthController = {
         const user = await User.findByIdAndUpdate(
           userId,
           { $set: req.body },
-          { new: true }
+          { new: true },
         );
 
         if (!user) {
@@ -694,7 +700,52 @@ const userAuthController = {
     }
 
     const {
-      phone, age, workLocation, name, dateOfBirth, userImages, email, gender, height, city, motherTongue, drinking, partnerExpectation, highestDegree, occupation, maritalStatus, employedIn, annualIncome, numOfSisters, numOfMarriedSisters, numOfBrothers, numOfMarriedBrothers, country, state, education, income, fathersOccupation, familyValue, familyStatus, familyType, smoking, food, physicalStatus, lookingFor, heightFrom, heightTo, ageFrom, ageTo, dosh, star, birthTime, birthPlace, religion, caste, sect, manglik,
+      phone,
+      age,
+      workLocation,
+      name,
+      dateOfBirth,
+      userImages,
+      email,
+      gender,
+      height,
+      city,
+      motherTongue,
+      drinking,
+      partnerExpectation,
+      highestDegree,
+      occupation,
+      maritalStatus,
+      employedIn,
+      annualIncome,
+      numOfSisters,
+      numOfMarriedSisters,
+      numOfBrothers,
+      numOfMarriedBrothers,
+      country,
+      state,
+      education,
+      income,
+      fathersOccupation,
+      familyValue,
+      familyStatus,
+      familyType,
+      smoking,
+      food,
+      physicalStatus,
+      lookingFor,
+      heightFrom,
+      heightTo,
+      ageFrom,
+      ageTo,
+      dosh,
+      star,
+      birthTime,
+      birthPlace,
+      religion,
+      caste,
+      sect,
+      manglik,
     } = req.body;
 
     console.log(req.body, "jdsjshakjhdafkjhaghahggdg");
@@ -751,9 +802,11 @@ const userAuthController = {
     if (manglik) user.horoscopeDetails.manglik = manglik;
 
     if (numOfBrothers) user.FamilyDetails.numOfBrothers = numOfBrothers;
-    if (numOfMarriedBrothers) user.FamilyDetails.numOfMarriedBrothers = numOfMarriedBrothers;
+    if (numOfMarriedBrothers)
+      user.FamilyDetails.numOfMarriedBrothers = numOfMarriedBrothers;
     if (numOfSisters) user.FamilyDetails.numOfSisters = numOfSisters;
-    if (numOfMarriedSisters) user.FamilyDetails.numOfMarriedSisters = numOfMarriedSisters;
+    if (numOfMarriedSisters)
+      user.FamilyDetails.numOfMarriedSisters = numOfMarriedSisters;
     if (country) user.FamilyDetails.country = country;
     if (state) user.FamilyDetails.state = state;
     if (city) user.FamilyDetails.city = city;
@@ -968,7 +1021,6 @@ const userAuthController = {
       res.status(200).json({ data: req.user, success: true });
     }
   },
-
 
   //.......................................Contact us..................................//
 
