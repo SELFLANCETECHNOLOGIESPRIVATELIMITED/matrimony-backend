@@ -203,4 +203,4 @@ const verifyPayment = async (req, res) => {
 //   }
 // };
 
-module.exports = { createOrder, verifyPayment, createTestOrder };
+module.exports = { createOrder, verifyPayment };
