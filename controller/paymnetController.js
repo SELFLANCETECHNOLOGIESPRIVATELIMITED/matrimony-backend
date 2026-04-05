@@ -18,6 +18,7 @@ function generateOrderId() {
 const createOrder = async (req, res) => {
   const { amount, customer_name, customer_id, customer_phone, customer_email } =
     req.body;
+  console.log("test");
   try {
     Cashfree.XClientId = process.env.CASHFREE_KEY_ID;
     Cashfree.XClientSecret = process.env.CASHFREE_KEY_SECRET;
