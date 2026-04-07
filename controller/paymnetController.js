@@ -18,7 +18,6 @@ function generateOrderId() {
 const createOrder = async (req, res) => {
   const { amount, customer_name, customer_id, customer_phone, customer_email } =
     req.body;
-  console.log("test");
   try {
     Cashfree.XClientId = process.env.CASHFREE_KEY_ID;
     Cashfree.XClientSecret = process.env.CASHFREE_KEY_SECRET;
@@ -66,7 +65,56 @@ const createOrder = async (req, res) => {
     res.status(500).json({ error: "Failed to create order" });
   }
 };
+const createTestOrder = async (req, res) => {
+  const { amount, customer_name, customer_id, customer_phone, customer_email } =
+    req.body;
+  try {
+    Cashfree.XClientId = process.env.CASHFREE_TEST_KEY_ID;
+    Cashfree.XClientSecret = process.env.CASHFREE_TEST_KEY_SECRET;
+    Cashfree.XEnvironment = Cashfree.Environment.SANDBOX;
+    console.log(
+      process.env.CASHFREE_TEST_KEY_ID,
+      process.env.CASHFREE_TEST_KEY_SECRET,
+      Cashfree,
+    );
 
+    var request = {
+      order_amount: amount,
+      order_currency: "INR",
+      order_id: await generateOrderId(),
+      customer_details: {
+        customer_id: customer_id,
+        customer_name: customer_name,
+        customer_email: customer_email,
+        customer_phone: customer_phone,
+        customer_country: "IN",
+      },
+      payment_methods: [
+        "cc",
+        "nb",
+        "upi",
+        "wallet",
+        "emi",
+        "paylater",
+        "cardless_emi",
+        "credit_line",
+      ],
+      order_meta: {
+        return_url: "https://vaishakhimatrimony.com/membership-plans",
+      },
+      order_note: "",
+    };
+
+    const response = await Cashfree.PGCreateOrder("2023-08-01", request);
+    res.status(200).json(response.data);
+  } catch (error) {
+    console.error(
+      "Error creating order:",
+      error.response?.data || error.message,
+    );
+    res.status(500).json({ error: "Failed to create order" });
+  }
+};
 const verifyPayment = async (req, res) => {
   let version = "2023-08-01";
   const { order_id, membership, userId } = req.body;
@@ -203,4 +251,4 @@ const verifyPayment = async (req, res) => {
 //   }
 // };
 
-module.exports = { createOrder, verifyPayment };
+module.exports = { createOrder, verifyPayment, createTestOrder };
