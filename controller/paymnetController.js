@@ -108,6 +108,8 @@ const createTestOrder = async (req, res) => {
     const response = await Cashfree.PGCreateOrder("2023-08-01", request);
     res.status(200).json(response.data);
   } catch (error) {
+    console.log("-----Error creating order-----");
+    console.log(error);
     console.error(
       "Error creating order:",
       error.response?.data || error.message,
