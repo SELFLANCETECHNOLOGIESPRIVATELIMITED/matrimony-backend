@@ -115,28 +115,51 @@ const userMatchController = {
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
-  
+
+      const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
+      const limit = Math.max(parseInt(req.query.limit, 10) || 10, 1);
+      const skip = (page - 1) * limit;
+
       const userGender = user.gender;
       const targetGender = userGender === "male" ? "female" : "male";
-  
+
       const sevenDaysAgo = new Date();
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-  
+
       const excludedUserIds = [
         ...user.sentInterests,
         ...user.receivedInterests,
         ...user.friends,
         userId
       ];
-  
-      const newUsers = await User.find({
+
+      const filters = {
         _id: { $nin: excludedUserIds },
         gender: targetGender,
         createdAt: { $gte: sevenDaysAgo },
         isActive: true
-      }).select('-password -__v');
-  
-      res.json({ newUsers });
+      };
+
+      const totalUsers = await User.countDocuments(filters);
+      const totalPages = Math.ceil(totalUsers / limit);
+
+      const newUsers = await User.find(filters)
+        .sort({ createdAt: -1, _id: -1 })
+        .skip(skip)
+        .limit(limit)
+        .select("-password -__v");
+
+      res.json({
+        newUsers,
+        pagination: {
+          page,
+          limit,
+          totalUsers,
+          totalPages,
+          hasNextPage: page < totalPages,
+          hasPreviousPage: page > 1,
+        },
+      });
     } catch (error) {
       console.error("Error in fetching new users:", error);
       res.status(500).json({ message: "Internal server error" });

@@ -85,9 +85,9 @@ const userAuthController = {
       user = await userToRegister.save();
 
       // token generation
-      accessToken = JWTService.signAccessToken({ _id: user._id }, "365d");
+      accessToken = JWTService.signAccessToken({ _id: user._id }, "30d");
 
-      refreshToken = JWTService.signRefreshToken({ _id: user._id }, "365d");
+      refreshToken = JWTService.signRefreshToken({ _id: user._id }, "30d");
     } catch (error) {
       return next(error);
     }
@@ -155,8 +155,8 @@ const userAuthController = {
       return next(error);
     }
 
-    const accessToken = JWTService.signAccessToken({ _id: user._id }, "365d");
-    const refreshToken = JWTService.signRefreshToken({ _id: user._id }, "365d");
+    const accessToken = JWTService.signAccessToken({ _id: user._id }, "30d");
+    const refreshToken = JWTService.signRefreshToken({ _id: user._id }, "30d");
     // update refresh token in database
     try {
       await RefreshToken.updateOne(
@@ -500,8 +500,8 @@ const userAuthController = {
       return next(error);
     }
 
-    const accessToken = JWTService.signAccessToken({ _id: user._id }, "365d");
-    const refreshToken = JWTService.signRefreshToken({ _id: user._id }, "365d");
+    const accessToken = JWTService.signAccessToken({ _id: user._id }, "30d");
+    const refreshToken = JWTService.signRefreshToken({ _id: user._id }, "30d");
     // update refresh token in database
     try {
       await RefreshToken.updateOne(
