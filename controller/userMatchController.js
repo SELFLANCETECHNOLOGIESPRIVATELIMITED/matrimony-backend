@@ -12,19 +12,21 @@ const { ObjectID, ObjectId } = require("mongodb");
 const userMatchController = {
   //.......................................userMatch..................................//
 
-  async  userMatch(req, res, next) {
+  async userMatch(req, res, next) {
     try {
       const userId = req.user?._id;
       const user = await User.findById(userId);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
-  
+
       const userGender = user.gender;
       const gender = userGender === "male" ? "female" : "male";
       const matchType = req.query.matchType;
-      
-  
+      const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
+      const limit = Math.max(parseInt(req.query.limit, 10) || 10, 1);
+      const skip = (page - 1) * limit;
+
       const {
         partnerAge,
         partnerMaritalStatus,
@@ -37,48 +39,51 @@ const userMatchController = {
         partnerCity
       } = user.partnerPreference || {};
   
-      let matchedUsers;
-  
+      let filters = {};
+
       if (matchType === "newUsers") {
         const oneYearAgo = new Date();
         oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
-  
+
         const excludedUserIds = [
           ...user.sentInterests,
           ...user.receivedInterests,
           ...user.friends,
-          userId 
+          userId,
         ];
-  
-        matchedUsers = await User.find({
+
+        filters = {
           _id: { $nin: excludedUserIds },
           gender: gender,
           createdAt: { $gte: oneYearAgo },
-          isActive: true
-        });
-  
+          isActive: true,
+        };
       } else if (matchType === "match") {
-        const [minAge, maxAge] = (partnerAge || "").split("-").map(age => parseInt(age, 10));
-        const [minIncome, maxIncome] = (partnerAnnualIncome || "").split("-").map(income => {
-          if (income.includes("Lac")) {
-            return parseFloat(income) * 100000;
-          }
-          return parseFloat(income);
-        });
-  
+        const [minAge, maxAge] = (partnerAge || "")
+          .split("-")
+          .map((age) => parseInt(age, 10));
+        const [minIncome, maxIncome] = (partnerAnnualIncome || "")
+          .split("-")
+          .map((income) => {
+            if (income.includes("Lac")) {
+              return parseFloat(income) * 100000;
+            }
+            return parseFloat(income);
+          });
+
         const baseMatchCriteria = {
           gender: gender,
-          _id: { $nin: [userId] } 
+          _id: { $nin: [userId] },
         };
-  
+
         const flexibleMatchCriteria = {
           $or: [
             { age: { $gte: minAge || 0, $lte: maxAge || 100 } },
             { occupation: partnerOccupation },
-            { city: partnerCity }
-          ]
+            { city: partnerCity },
+          ],
         };
-  
+
         if (partnerMaritalStatus) {
           flexibleMatchCriteria.$or.push({ maritalStatus: partnerMaritalStatus });
         }
@@ -94,15 +99,33 @@ const userMatchController = {
         if (partnerSect) {
           flexibleMatchCriteria.$or.push({ sect: partnerSect });
         }
-  
-        matchedUsers = await User.find({
-          $and: [baseMatchCriteria, flexibleMatchCriteria]
-        });
+
+        filters = {
+          $and: [baseMatchCriteria, flexibleMatchCriteria],
+        };
       } else {
         return res.status(400).json({ message: "Invalid matchType" });
       }
-  
-      res.json({ matchedUsers });
+
+      const totalUsers = await User.countDocuments(filters);
+      const totalPages = Math.ceil(totalUsers / limit);
+
+      const matchedUsers = await User.find(filters)
+        .sort({ createdAt: -1, _id: -1 })
+        .skip(skip)
+        .limit(limit);
+
+      res.json({
+        matchedUsers,
+        pagination: {
+          page,
+          limit,
+          totalUsers,
+          totalPages,
+          hasNextPage: page < totalPages,
+          hasPreviousPage: page > 1,
+        },
+      });
     } catch (error) {
       console.error("Error in userMatch:", error);
       res.status(500).json({ message: "Internal server error" });
