@@ -4,6 +4,7 @@ const User = require("../models/user");
 const SuccessStory = require("../models/successStory");
 const Subscription = require("../models/subscribtion.js");
 const { defaultMaxListeners } = require("nodemailer/lib/xoauth2/index.js");
+const nodemailer = require("nodemailer");
 const cron = require("node-cron");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
@@ -497,6 +498,82 @@ const dashboardController = {
       });
     } catch (error) {
       res.status(500).json({ error: error.message });
+      return next(error);
+    }
+  },
+  async changeUserPasswordByAdmin(req, res, next) {
+    try {
+      if (!req.user || !req.user.isAdmin) {
+        return res.status(403).json({
+          success: false,
+          message: "Only admin can change user passwords",
+        });
+      }
+
+      const { id } = req.params;
+      const { newPassword } = req.body;
+
+      if (!id) {
+        return res.status(400).json({
+          success: false,
+          message: "User id is required",
+        });
+      }
+
+      if (!newPassword || String(newPassword).trim().length < 6) {
+        return res.status(400).json({
+          success: false,
+          message: "newPassword is required and must be at least 6 characters",
+        });
+      }
+
+      const user = await User.findById(id);
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: "User not found",
+        });
+      }
+
+      const hashedPassword = await bcrypt.hash(String(newPassword), 10);
+      user.password = hashedPassword;
+      await user.save();
+
+      let emailSent = false;
+      let emailErrorMessage = null;
+
+      try {
+        const transporter = nodemailer.createTransport({
+          host: "smtp.hostinger.com",
+          port: 587,
+          secure: false,
+          auth: {
+            user: "info@vaishakhimatrimony.com",
+            pass: "Temp@12345",
+          },
+        });
+
+        await transporter.sendMail({
+          from: "info@vaishakhimatrimony.com",
+          to: user.email,
+          subject: "Password Changed by Admin",
+          text: `Dear ${user.name || "User"},\n\nYour account password has been changed by admin.\nYour new password is: ${newPassword}\n\nFor your security, please login and change your password as soon as possible.\n\nRegards,\nVaishakhi Matrimony Team`,
+        });
+        emailSent = true;
+      } catch (mailError) {
+        emailErrorMessage = mailError?.message || "Failed to send email";
+        console.error("Error sending admin password change email:", mailError);
+      }
+
+      return res.status(200).json({
+        success: true,
+        message: emailSent
+          ? "Password changed successfully and email sent to user"
+          : "Password changed successfully but email could not be sent",
+        emailSent,
+        ...(emailErrorMessage ? { emailErrorMessage } : {}),
+      });
+    } catch (error) {
       return next(error);
     }
   },

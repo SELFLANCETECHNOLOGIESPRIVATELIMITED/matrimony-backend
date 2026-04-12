@@ -73,6 +73,11 @@ router.delete(
   isAuthenticated,
   adminDashController.deleteUser
 );
+router.put(
+  "/admin/change-user-password/:id",
+  isAuthenticated,
+  adminDashController.changeUserPasswordByAdmin
+);
 
 // admin auth
 router.post("/admin/login", adminDashController.adminLogin);
