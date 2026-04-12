@@ -14,11 +14,11 @@ const user = require("../models/user.js");
 const Contact = require("../models/contact.js");
 const nodemailer = require("nodemailer");
 const admin = require("firebase-admin");
-const serviceAccount = require("../vaishakhi-matrimony-firebase-adminsdk-mjr6h-33d857fb90.json"); // Replace with the path to your Firebase service account key file
+const serviceAccount = require("../vaishakhi-matrimony-firebase-adminsdk-mjr6h-f5bae005ae.json"); // Replace with the path to your Firebase service account key file
 const resetToken = require("../models/resetToken.js");
 
 if (!admin.apps.length) {
-  const serviceAccount = require("../vaishakhi-matrimony-firebase-adminsdk-mjr6h-33d857fb90.json");
+  const serviceAccount = require("../vaishakhi-matrimony-firebase-adminsdk-mjr6h-f5bae005ae.json");
   admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
     // If you're using other Firebase services, include their configs here

@@ -7,7 +7,7 @@ const {
 
 // Check if the app is already initialized
 if (!admin.apps.length) {
-  const serviceAccount = require("../../vaishakhi-matrimony-firebase-adminsdk-mjr6h-33d857fb90.json");
+  const serviceAccount = require("../../vaishakhi-matrimony-firebase-adminsdk-mjr6h-f5bae005ae.json");
   admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
     storageBucket: "gs://vaishakhi-matrimony.appspot.com",
