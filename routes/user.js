@@ -112,7 +112,7 @@ router.get(
   auth,
   chatController.getAllConversations
 );
-router.get("/user/getMessages", chatController.getMessages);
+router.get("/user/getMessages", auth, chatController.getMessages);
 
 // search user with name ,email,occupation,maritalStatus,gender
 router.post("/user/searchUser", auth, userAuthController.searchUser);

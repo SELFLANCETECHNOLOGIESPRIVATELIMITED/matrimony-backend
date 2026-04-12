@@ -9,6 +9,12 @@ const Message = require("../models/message");
 const { ObjectId } = require("mongodb");
 const conversation = require("../models/conversation");
 
+const hasActiveSubscription = (user) => {
+  if (!user || !user.isPaid) return false;
+  if (!user.membershipExpiry) return true;
+  return new Date(user.membershipExpiry) > new Date();
+};
+
 const chatController = {
   // Create or get a conversation
   async createConversation(req, res, next) {
@@ -49,6 +55,15 @@ const chatController = {
       // Step 1: Validate logged-in user
       if (!req.user || !req.user._id) {
         return res.status(400).json({ error: "User ID is required" });
+      }
+      if (!hasActiveSubscription(req.user)) {
+        return res.status(200).json({
+          success: true,
+          chats: [],
+          subscriptionRequired: true,
+          message:
+            "You have messages waiting. Please subscribe to view your chats.",
+        });
       }
 
       const loggedInUserId = req.user._id.toString();
@@ -160,6 +175,16 @@ const chatController = {
     const roomId = req.query.roomId;
 
     try {
+      if (!hasActiveSubscription(req.user)) {
+        return res.status(200).json({
+          success: true,
+          messages: [],
+          subscriptionRequired: true,
+          message:
+            "You have messages waiting. Please subscribe to view message content.",
+        });
+      }
+
       const messages = await Message.find({ roomId }).exec();
       console.log("Fetched messages:", messages);
 

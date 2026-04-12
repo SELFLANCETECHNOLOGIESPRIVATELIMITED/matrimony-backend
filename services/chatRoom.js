@@ -51,7 +51,7 @@ const saveMessage = async (data) => {
 const saveNotification = async (data) => {
   console.log("data in notification....", data);
   const notification = new Notification({
-    senderId: data.roomId.split("_")[1],
+    senderId: data.authorId || data?.user?._id,
     receiverId: data.receiverId,
     title: "Chat",
     message: data.text,

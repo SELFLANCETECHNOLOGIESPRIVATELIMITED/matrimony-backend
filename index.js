@@ -14,6 +14,7 @@ const { checkRoom, saveMessage, saveNotification } = require("./services/chatRoo
 const { sendchatNotification } = require("./firebase/service");
 const cookieParser = require("cookie-parser");
 const bodyParser = require("body-parser");
+const User = require("./models/user");
 
 app.use(bodyParser.json({ limit: "50mb" }));
 app.use(express.json({ limit: "50mb" }));
@@ -87,16 +88,41 @@ io.on("connection", (socket) => {
   socket.on("send_message", async (data) => {
     console.log("data....", data);
     try {
-      await sendchatNotification(data.receiverId, {
-        message: data.text,
-        title: data?.user?.name || "Metrimonial"
-      }, data.user._id);
+      const receiver = await User.findById(data.receiverId)
+        .select("isPaid membershipExpiry")
+        .lean();
+      const receiverCanViewMessages =
+        !!receiver?.isPaid &&
+        (!receiver?.membershipExpiry ||
+          new Date(receiver.membershipExpiry) > new Date());
+
+      const pushBody = receiverCanViewMessages
+        ? data.text
+        : "You have a new message. Please subscribe to view it.";
+
+      await sendchatNotification(
+        data.receiverId,
+        {
+          message: pushBody,
+          title: data?.user?.name || "Matrimonial",
+        },
+        data.user._id
+      );
 
       await checkRoom(data);
       await saveMessage(data);
       await saveNotification(data);
 
-      io.to(data.roomId).emit("receive_message", data);
+      if (receiverCanViewMessages) {
+        io.to(data.roomId).emit("receive_message", data);
+      } else {
+        socket.emit("message_saved_for_receiver", {
+          roomId: data.roomId,
+          receiverId: data.receiverId,
+          message:
+            "Message saved. Receiver needs an active subscription to view it.",
+        });
+      }
     } catch (error) {
       console.error("Error processing message:", error);
       socket.emit("message_error", { message: "Failed to send message" });

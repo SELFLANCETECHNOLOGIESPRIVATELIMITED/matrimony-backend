@@ -33,13 +33,18 @@ const chatnotificationsCategories = {
 async function getFcmTokenForChat(userId) {
   try {
     const gettingDeviceToken = await User.findById({ _id: userId });
-    let deviceToken = gettingDeviceToken.fcmToken;
-    if (deviceToken) {
-      return deviceToken;
-    } else {
-      console.log("users device token does not exist");
-      return "sdfknaslkfsalf "
+    if (!gettingDeviceToken) {
+      console.log("FCM lookup failed: user not found for userId:", userId);
+      return null;
     }
+
+    const deviceToken = gettingDeviceToken.fcmToken;
+    if (!deviceToken || !String(deviceToken).trim()) {
+      console.log("FCM lookup: token missing/empty for userId:", userId);
+      return null;
+    }
+
+    return deviceToken;
   } catch (err) {
     console.log("error retreiving FCM token:", err);
     throw err;

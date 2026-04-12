@@ -36,9 +36,9 @@ const userMatchController = {
         partnerMotherTongue,
         partnerAnnualIncome,
         partnerSect,
-        partnerCity
+        partnerCity,
       } = user.partnerPreference || {};
-  
+
       let filters = {};
 
       if (matchType === "newUsers") {
@@ -85,7 +85,9 @@ const userMatchController = {
         };
 
         if (partnerMaritalStatus) {
-          flexibleMatchCriteria.$or.push({ maritalStatus: partnerMaritalStatus });
+          flexibleMatchCriteria.$or.push({
+            maritalStatus: partnerMaritalStatus,
+          });
         }
         if (education) {
           flexibleMatchCriteria.$or.push({ highestDegree: education });
@@ -94,7 +96,9 @@ const userMatchController = {
           flexibleMatchCriteria.$or.push({ motherTongue: partnerMotherTongue });
         }
         if (minIncome !== undefined && maxIncome !== undefined) {
-          flexibleMatchCriteria.$or.push({ annualIncome: { $gte: minIncome, $lte: maxIncome } });
+          flexibleMatchCriteria.$or.push({
+            annualIncome: { $gte: minIncome, $lte: maxIncome },
+          });
         }
         if (partnerSect) {
           flexibleMatchCriteria.$or.push({ sect: partnerSect });
@@ -131,7 +135,7 @@ const userMatchController = {
       res.status(500).json({ message: "Internal server error" });
     }
   },
-  async  newUsers(req, res)  {
+  async newUsers(req, res) {
     try {
       const userId = req.user?._id;
       const user = await User.findById(userId);
@@ -153,21 +157,20 @@ const userMatchController = {
         ...user.sentInterests,
         ...user.receivedInterests,
         ...user.friends,
-        userId
+        userId,
       ];
-
       const filters = {
         _id: { $nin: excludedUserIds },
         gender: targetGender,
         createdAt: { $gte: sevenDaysAgo },
-        isActive: true
+        isActive: true,
       };
 
       const totalUsers = await User.countDocuments(filters);
       const totalPages = Math.ceil(totalUsers / limit);
 
       const newUsers = await User.find(filters)
-        .sort({ createdAt: -1, _id: -1 })
+        .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
         .select("-password -__v");
@@ -192,7 +195,7 @@ const userMatchController = {
 
   async recentlyViewed(req, res, next) {
     const viewerId = req.user._id;
-    const viewedUserId = req.body.userId; 
+    const viewedUserId = req.body.userId;
 
     try {
       const viewerUser = await User.findById(viewerId);
@@ -217,7 +220,7 @@ const userMatchController = {
 
       // Remove viewedUserId if it's already in the array
       viewerUser.recentlyViewed = viewerUser.recentlyViewed.filter(
-        id => id?.toString() !== viewedUserId
+        (id) => id?.toString() !== viewedUserId,
       );
 
       // Add viewedUserId to the most recent position
@@ -238,60 +241,59 @@ const userMatchController = {
       const userId = req.user._id;
       const user = await User.findById(userId).populate({
         path: "recentlyViewed",
-        model: User
+        model: User,
       });
-  
+
       if (!user) {
         return res.status(404).json({ error: "user not found" });
       }
-  
+
       res.json({ success: true, recentlyViewed: user.recentlyViewed });
     } catch (error) {
       next(error);
     }
-  }
-  
-,
+  },
 
-  
   //.......................................SendInterest..................................//
- async saveUser(req, res, next) {
-  const userId = req.user._id;  
-  const userToSaveId = req.body.userId;
-  try {
-    const user = await User.findById(userId)
-    if (!user) {
-      return res.status(404).json({ error: "User not found" });
-    }
-    if (!user.savedUsers) {
-      user.savedUsers = [];
-    }
-    if (user.savedUsers.includes(userToSaveId)) {
-      return res.json({ success: true, message: "User already saved" });
-    }
-    user.savedUsers.push(userToSaveId);
-    await user.save();
-    res.json({ success: true, message: "User saved successfully" });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Internal Server Error" });
-  }
-},
- async getSavedUsers(req, res, next) {
-  try {
+  async saveUser(req, res, next) {
     const userId = req.user._id;
-    const user = await User.findById(userId).populate({ path: "savedUsers", model: User });
-    if (!user) {
-      return res.status(404).json({ error: "User not found" });
+    const userToSaveId = req.body.userId;
+    try {
+      const user = await User.findById(userId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      if (!user.savedUsers) {
+        user.savedUsers = [];
+      }
+      if (user.savedUsers.includes(userToSaveId)) {
+        return res.json({ success: true, message: "User already saved" });
+      }
+      user.savedUsers.push(userToSaveId);
+      await user.save();
+      res.json({ success: true, message: "User saved successfully" });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "Internal Server Error" });
     }
-    res.json({ success: true, savedUsers: user.savedUsers });
-    console.log("savedUsers", user.savedUsers);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Internal Server Error" });
-  }
-},
-
+  },
+  async getSavedUsers(req, res, next) {
+    try {
+      const userId = req.user._id;
+      const user = await User.findById(userId).populate({
+        path: "savedUsers",
+        model: User,
+      });
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      res.json({ success: true, savedUsers: user.savedUsers });
+      console.log("savedUsers", user.savedUsers);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "Internal Server Error" });
+    }
+  },
 
   async sendInterest(req, res, next) {
     const interestSchema = Joi.object({
@@ -299,22 +301,22 @@ const userMatchController = {
       receiverId: Joi.string().required(),
     });
     const { error } = interestSchema.validate(req.body);
-  
+
     if (error) {
       return next(error);
     }
-  
+
     const { receiverId } = req.body;
     const senderId = req.user._id;
     let receiver;
     let sender;
     let updatedSender;
     let updatedReceiver;
-  
+
     try {
       // Find the receiver
       receiver = await User.findOne({ _id: receiverId });
-  
+
       if (!receiver) {
         const error = {
           status: 401,
@@ -322,16 +324,16 @@ const userMatchController = {
         };
         return next(error);
       }
-  
+
       const matchRequest = new MatchRequest({
         senderId,
         receiverId,
       });
       await matchRequest.save();
-  
+
       // Find the sender
       sender = await User.findOne({ _id: senderId });
-  
+
       const notification = new Notification({
         senderId,
         receiverId,
@@ -339,35 +341,33 @@ const userMatchController = {
         message: `${sender?.name} has sent you an interest`,
       });
       await notification.save();
-  
+
       sendchatNotification(receiverId, {
         title: "Matrimonial",
         message: `${sender?.name} has sent you an interest`,
       });
-  
+
       // Update the sender's sentInterests
       updatedSender = await User.findOneAndUpdate(
         { _id: senderId },
         { $addToSet: { sentInterests: receiverId } },
-        { new: true } // Return the updated document
+        { new: true }, // Return the updated document
       );
-  
+
       // Update the receiver's receivedInterests
       updatedReceiver = await User.findOneAndUpdate(
         { _id: receiverId },
         { $addToSet: { receivedInterests: senderId } },
-        { new: true } // Return the updated document
+        { new: true }, // Return the updated document
       );
-  
     } catch (error) {
       return next(error);
     }
-  
+
     return res
       .status(200)
       .json({ message: "Interest sent successfully!", user: updatedSender });
   },
-  
 
   /////..........................matchRequests..........................//
 
@@ -458,7 +458,7 @@ const userMatchController = {
         .limit(requestsPerPage)
         .populate("receiverId");
 
-        const user = await User.findById(senderId)
+      const user = await User.findById(senderId);
       let previousPage = page > 1 ? page - 1 : null;
       let nextPage = page < totalPages ? page + 1 : null;
       return res.status(200).json({
@@ -466,7 +466,7 @@ const userMatchController = {
         auth: true,
         previousPage: previousPage,
         nextPage: nextPage,
-        user:user,
+        user: user,
       });
     } catch (error) {
       return next(error);
@@ -515,7 +515,7 @@ const userMatchController = {
           $pull: { receivedInterests: request.senderId },
           $push: { friends: request.senderId },
         },
-        { new: true }
+        { new: true },
       );
 
       await User.findByIdAndUpdate(
@@ -524,7 +524,7 @@ const userMatchController = {
           $pull: { sentInterests: receiverId },
           $push: { friends: receiverId },
         },
-        { new: true }
+        { new: true },
       );
 
       await MatchRequest.findOneAndDelete({ _id: requestId });
@@ -594,7 +594,7 @@ const userMatchController = {
           }
 
           requests[index]._doc = { ...request._doc, friend: friend };
-        })
+        }),
       );
 
       let previousPage = page > 1 ? page - 1 : null;

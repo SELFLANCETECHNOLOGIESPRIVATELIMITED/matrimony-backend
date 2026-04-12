@@ -18,20 +18,35 @@ const userMatchController = {
       const page = parseInt(req.query.page) || 1; // Get the page number from the query parameter
       const notificationsPerPage = 15;
       const receiverId = req.user._id;
-      const totalNotifications = await Notification.find({ receiverId });
+      const hasActiveSubscription =
+        !!req.user?.isPaid &&
+        (!req.user?.membershipExpiry ||
+          new Date(req.user.membershipExpiry) > new Date());
+      const totalNotifications = await Notification.countDocuments({ receiverId });
       const totalPages = Math.ceil(totalNotifications / notificationsPerPage); // Calculate the total number of pages
 
       const skip = (page - 1) * notificationsPerPage; // Calculate the number of posts to skip based on the current page
 
       const notifications = await Notification.find({ receiverId })
+        .sort({ createdAt: -1 })
         .skip(skip)
         .limit(notificationsPerPage)
         .populate("senderId");
+      const mappedNotifications = notifications.map((item) => {
+        const notificationObj = item.toObject();
+        if (!hasActiveSubscription && notificationObj?.title === "Chat") {
+          notificationObj.message =
+            "You have a new message. Please subscribe to view it.";
+          notificationObj.lockedBySubscription = true;
+        }
+        return notificationObj;
+      });
       let previousPage = page > 1 ? page - 1 : null;
       let nextPage = page < totalPages ? page + 1 : null;
       return res.status(200).json({
-        notifications: notifications,
+        notifications: mappedNotifications,
         auth: true,
+        subscriptionRequiredForChat: !hasActiveSubscription,
         previousPage: previousPage,
         nextPage: nextPage,
       });
