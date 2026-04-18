@@ -120,6 +120,14 @@ io.on("connection", (socket) => {
       await checkRoom(data);
       await saveMessage(data);
       await saveNotification(data);
+      io.to(data.receiverId).emit("new_notification", {
+        type: "chat_message",
+        roomId: data.roomId,
+        receiverId: data.receiverId,
+        senderId: data.user?._id,
+        senderName: data.user?.name,
+        message: pushBody,
+      });
 
       if (receiverCanViewMessages) {
         io.to(data.roomId).emit("receive_message", data);
