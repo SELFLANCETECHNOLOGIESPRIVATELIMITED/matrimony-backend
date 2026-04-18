@@ -19,8 +19,9 @@ const dropdownController = require("../controller/dropdownController");
 const storage = multer.diskStorage({
   destination: "./temp", // Update the destination path
   filename: function (req, file, cb) {
-    // Use the original file name and extension
-    cb(null, file.originalname);
+    const extension = path.extname(file.originalname);
+    const baseName = path.basename(file.originalname, extension);
+    cb(null, `${Date.now()}-${baseName}${extension}`);
   }
 });
 

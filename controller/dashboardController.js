@@ -779,8 +779,58 @@ const dashboardController = {
 
   async getSuccessStories(req, res) {
     try {
-      const successStories = await SuccessStory.find().sort({ createdAt: -1 });
-      res.status(200).json({ success: true, successStories });
+      const hasPaginationQuery =
+        typeof req.query.page !== "undefined" ||
+        typeof req.query.limit !== "undefined";
+
+      if (!hasPaginationQuery) {
+        const successStories = await SuccessStory.find()
+          .populate("createdBy", "name occupation")
+          .sort({ createdAt: -1 });
+
+        return res.status(200).json({
+          success: true,
+          successStories,
+          pagination: {
+            page: 1,
+            limit: successStories.length || 1,
+            totalCount: successStories.length,
+            totalPages: 1,
+            hasNextPage: false,
+            hasPreviousPage: false,
+          },
+        });
+      }
+
+      const requestedPage = parseInt(req.query.page, 10) || 1;
+      const requestedLimit = parseInt(req.query.limit, 10) || 5;
+
+      const page = Math.max(1, requestedPage);
+      const limit = Math.max(1, requestedLimit);
+
+      const totalCount = await SuccessStory.countDocuments();
+      const totalPages = totalCount > 0 ? Math.ceil(totalCount / limit) : 1;
+      const safePage = Math.min(page, totalPages);
+      const skip = (safePage - 1) * limit;
+
+      const successStories = await SuccessStory.find()
+        .populate("createdBy", "name occupation")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit);
+
+      return res.status(200).json({
+        success: true,
+        successStories,
+        pagination: {
+          page: safePage,
+          limit,
+          totalCount,
+          totalPages,
+          hasNextPage: safePage < totalPages,
+          hasPreviousPage: safePage > 1,
+        },
+      });
     } catch (error) {
       console.error("Error fetching success stories:", error);
       res.status(500).json({ success: false, message: "Error fetching success stories", error: error.message });

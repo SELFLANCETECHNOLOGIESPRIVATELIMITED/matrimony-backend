@@ -1,48 +1,45 @@
-const express = require("express");
-const app = express();
 const fs = require("fs");
-const admin = require("firebase-admin");
-
-
-const bucket = admin.storage().bucket();
-
+const { cloudinary, isCloudinaryConfigured } = require("../services/cloudinary");
 
 const uploadFileController = {
   async uploadFile(req, res) {
     console.log("req.file", req.file);
+    const filePath = req?.file?.path;
+
     try {
       if (!req.file) {
         return res.status(400).json({ status: false, message: "No file uploaded" });
       }
 
-      const file = req.file;
-      const fileName = `UserImages/${Date.now()}_${file.originalname}`;
-      const fileUpload = bucket.file(fileName);
+      if (!isCloudinaryConfigured()) {
+        return res.status(500).json({
+          status: false,
+          message:
+            "Cloudinary is not configured. Please set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET.",
+        });
+      }
 
-      // Read the file from the temp folder
-      const fileContent = fs.readFileSync(file.path);
-
-      const blobStream = fileUpload.createWriteStream({
-        metadata: { contentType: file.mimetype },
+      const folder = process.env.CLOUDINARY_UPLOAD_FOLDER || "UserImages";
+      const uploadResult = await cloudinary.uploader.upload(filePath, {
+        folder,
+        resource_type: "auto",
+        use_filename: true,
+        unique_filename: true,
+        overwrite: false,
       });
 
-      blobStream.on('error', (error) => {
-        console.error("Error uploading to Firebase:", error);
-        res.status(500).json({ error: "Something went wrong uploading the file: " + error.message });
+      console.log("publicUrl", uploadResult.secure_url);
+      return res.status(200).json({
+        status: true,
+        fileUrl: uploadResult.secure_url,
       });
-
-      blobStream.on('finish', async () => {
-        await fileUpload.makePublic();
-        const publicUrl = `https://storage.googleapis.com/${bucket.name}/${fileUpload.name}`;
-        fs.unlinkSync(file.path);
-        console.log("publicUrl", publicUrl);
-        res.status(200).json({ status: true, fileUrl: publicUrl });
-      });
-
-      blobStream.end(fileContent);
     } catch (error) {
-      console.error("Server error:", error);
+      console.error("Error uploading to Cloudinary:", error);
       res.status(500).json({ status: "Failure", error: error.message });
+    } finally {
+      if (filePath) {
+        fs.promises.unlink(filePath).catch(() => null);
+      }
     }
   },
 };
