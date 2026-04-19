@@ -4,10 +4,8 @@ const Joi = require("joi");
 const bcrypt = require("bcryptjs");
 const User = require("../models/user.js");
 const JWTService = require("../services/JWTService.js");
-const RefreshToken = require("../models/token.js");
 const Subscription = require("../models/subscribtion.js");
 const ResetToken = require("../models/resetToken.js");
-const AccessToken = require("../models/accessToken.js");
 const { sendchatNotification } = require("../firebase/service/index.js");
 const jwt = require("jsonwebtoken");
 const user = require("../models/user.js");
@@ -69,7 +67,6 @@ const userAuthController = {
       return next(error);
     }
     let accessToken;
-    let refreshToken;
     const hashedPassword = await bcrypt.hash(password, 10);
 
     let user;
@@ -86,15 +83,9 @@ const userAuthController = {
 
       // token generation
       accessToken = JWTService.signAccessToken({ _id: user._id }, "30d");
-
-      refreshToken = JWTService.signRefreshToken({ _id: user._id }, "30d");
     } catch (error) {
       return next(error);
     }
-
-    // store refresh token in db
-    await JWTService.storeRefreshToken(refreshToken, user._id);
-    await JWTService.storeAccessToken(accessToken, user._id);
 
     // 6. response send
 
@@ -156,32 +147,6 @@ const userAuthController = {
     }
 
     const accessToken = JWTService.signAccessToken({ _id: user._id }, "30d");
-    const refreshToken = JWTService.signRefreshToken({ _id: user._id }, "30d");
-    // update refresh token in database
-    try {
-      await RefreshToken.updateOne(
-        {
-          userId: user._id,
-        },
-        { token: refreshToken },
-        { upsert: true },
-      );
-    } catch (error) {
-      return next(error);
-    }
-
-    try {
-      await AccessToken.updateOne(
-        {
-          userId: user._id,
-        },
-        { token: accessToken },
-        { upsert: true },
-      );
-    } catch (error) {
-      return next(error);
-    }
-
     return res.status(200).json({ user: user, auth: true, token: accessToken });
   },
 
@@ -501,32 +466,6 @@ const userAuthController = {
     }
 
     const accessToken = JWTService.signAccessToken({ _id: user._id }, "30d");
-    const refreshToken = JWTService.signRefreshToken({ _id: user._id }, "30d");
-    // update refresh token in database
-    try {
-      await RefreshToken.updateOne(
-        {
-          userId: user._id,
-        },
-        { token: refreshToken },
-        { upsert: true },
-      );
-    } catch (error) {
-      return next(error);
-    }
-
-    try {
-      await AccessToken.updateOne(
-        {
-          userId: user._id,
-        },
-        { token: accessToken },
-        { upsert: true },
-      );
-    } catch (error) {
-      return next(error);
-    }
-
     return res.status(200).json({ user: user, auth: true, token: accessToken });
   },
 
@@ -859,21 +798,7 @@ const userAuthController = {
   //.......................................Logout..................................//
 
   async logout(req, res, next) {
-    const userId = req.user._id;
-    const authHeader = req.headers["authorization"];
-    const accessToken = authHeader && authHeader.split(" ")[1];
-    try {
-      await RefreshToken.deleteOne({ userId });
-    } catch (error) {
-      return next(error);
-    }
-    try {
-      await AccessToken.deleteOne({ token: accessToken });
-    } catch (error) {
-      return next(error);
-    }
-
-    // 2. response
+    // Stateless logout: client clears token locally.
     res.status(200).json({ user: null, auth: false });
   },
 

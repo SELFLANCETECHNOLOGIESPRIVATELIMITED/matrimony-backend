@@ -3,21 +3,11 @@ const User = require("../models/user");
 // const Vendor = require("../models/vendor/vendor");
 const jwt = require("jsonwebtoken");
 
-const AccessToken = require("../models/accessToken");
-
 const auth =async (req, res, next) => {
   try {
-    // 1. refresh, access token validation
-    const authHeader = req.headers["authorization"];  
+    // Stateless auth: validate bearer token signature/expiry only.
+    const authHeader = req.headers["authorization"];
     const accessToken = authHeader && authHeader.split(" ")[1];
-    const ifTokenExists = await AccessToken.find({ token: accessToken });
-    if (ifTokenExists == "") {
-      const error = {
-        status: 401,
-        message: "Unauthorized",
-      };
-      return next(error);
-    }
 
     if (!accessToken) {
       const error = {
@@ -41,6 +31,13 @@ const auth =async (req, res, next) => {
       try {
         user = await User.findOne({ _id: _id });
       } catch (error) {
+        return next(error);
+      }
+      if (!user) {
+        const error = {
+          status: 401,
+          message: "Unauthorized",
+        };
         return next(error);
       }
 
