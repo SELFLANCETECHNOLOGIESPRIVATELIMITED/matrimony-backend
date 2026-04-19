@@ -3,6 +3,7 @@ require("dotenv").config();
 const mongoose = require("mongoose");
 const User = require("../models/user");
 const Order = require("../models/order");
+const Subscription = require("../models/subscribtion");
 const crypto = require("crypto");
 const { Cashfree } = require("cashfree-pg");
 
@@ -13,6 +14,16 @@ function generateOrderId() {
   hash.update(uniqueId);
   const orderId = hash.digest("hex");
   return orderId.substr(0, 12);
+}
+
+function getMembershipExpiry(duration) {
+  const durationText = String(duration || "");
+  const durationValue = Number(durationText.match(/\d+/)?.[0] || 0);
+
+  if (!durationValue) return null;
+
+  // Keep current behavior aligned with admin flow (month-based plan duration).
+  return new Date(Date.now() + durationValue * 30 * 24 * 60 * 60 * 1000);
 }
 
 const createOrder = async (req, res) => {
@@ -134,6 +145,18 @@ const verifyPayment = async (req, res) => {
       }
 
       try {
+        const membershipPlan = await Subscription.findById(membership).select(
+          "duration"
+        );
+        if (!membershipPlan) {
+          return res.status(404).json({
+            success: false,
+            message: "Membership plan not found",
+          });
+        }
+
+        const membershipExpiry = getMembershipExpiry(membershipPlan.duration);
+
         // Create order record in database
         const newOrder = await Order.create({
           membership: mongoose.Types.ObjectId(membership),
@@ -147,10 +170,11 @@ const verifyPayment = async (req, res) => {
           {
             membership: mongoose.Types.ObjectId(membership),
             isPaid: true,
+            membershipExpiry,
             $push: { orders: newOrder._id },
           },
           { new: true },
-        ); // Ensure to get the updated document back
+        ).populate("membership"); // Ensure to get the updated document back
 
         if (!updatedUser) {
           return res
