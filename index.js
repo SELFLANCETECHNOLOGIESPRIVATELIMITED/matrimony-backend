@@ -10,14 +10,15 @@ const { PORT } = require("./config/index");
 const userRouter = require("./routes/user");
 const adminRouter = require("./routes/admin");
 const paymentRouter = require("./routes/payment");
-const { checkRoom, saveMessage, saveNotification } = require("./services/chatRoom");
+const {
+  checkRoom,
+  saveMessage,
+  saveNotification,
+} = require("./services/chatRoom");
 const { sendchatNotification } = require("./firebase/service");
 const cookieParser = require("cookie-parser");
 const bodyParser = require("body-parser");
 const User = require("./models/user");
-
-app.use(bodyParser.json({ limit: "50mb" }));
-app.use(express.json({ limit: "50mb" }));
 
 // Allowed origins list
 const allowedOrigins = [
@@ -27,7 +28,7 @@ const allowedOrigins = [
   "https://www.vaishakhimatrimony.com",
   "https://api.vaishakhimatrimony.com",
   "https://admin.vaishakhimatrimony.com",
-  'https://vaishakhi-matrimony.vercel.app',
+  "https://vaishakhi-matrimony.vercel.app",
 ];
 
 // CORS Middleware
@@ -45,21 +46,31 @@ const corsOptions = {
     "Authorization",
     "X-Requested-With",
     "Accept",
-    "Origin"
+    "Origin",
+    "Cache-Control",
+    "Pragma",
   ],
   credentials: true,
-  optionsSuccessStatus: 200
+  optionsSuccessStatus: 200,
 };
 
 app.use(cors(corsOptions));
+app.options("*", cors(corsOptions));
 app.use(cookieParser());
-
+app.use(bodyParser.json({ limit: "50mb" }));
+app.use(express.json({ limit: "50mb" }));
 // Handle OPTIONS preflight requests globally
 app.use((req, res, next) => {
   if (req.method === "OPTIONS") {
     res.setHeader("Access-Control-Allow-Origin", req.headers.origin || "*");
-    res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+    res.setHeader(
+      "Access-Control-Allow-Methods",
+      "GET, POST, PUT, DELETE, OPTIONS",
+    );
+    res.setHeader(
+      "Access-Control-Allow-Headers",
+      "Content-Type, Authorization",
+    );
     res.setHeader("Access-Control-Allow-Credentials", "true");
     return res.status(200).end();
   }
@@ -73,8 +84,8 @@ const io = new Server(server, {
   cors: {
     origin: allowedOrigins,
     methods: ["GET", "POST"],
-    credentials: true
-  }
+    credentials: true,
+  },
 });
 
 io.on("connection", (socket) => {
@@ -106,7 +117,7 @@ io.on("connection", (socket) => {
           message: pushBody,
           title: data?.user?.name || "Matrimonial",
         },
-        data.user._id
+        data.user._id,
       );
 
       await checkRoom(data);
