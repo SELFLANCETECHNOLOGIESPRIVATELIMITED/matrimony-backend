@@ -245,58 +245,95 @@ const userAuthController = {
   //   }
   // },
 
+///////////////////////////////////////////////////////////old forgot password code///////////////////////////////////////////////////////////
+
   async forgotPassword(req, res, next) {
-    const { email } = req.body;
-    const forgotPassSchema = Joi.object({
-      email: Joi.string().required(),
+  
+  // 1. Validation schema
+  const schema = Joi.object({
+    email: Joi.string().email().required(),
+  });
+
+  const { error, value } = schema.validate(req.body);
+  if (error) {
+    return res.status(422).json({
+      status: false,
+      message: error.details[0].message,
+    });
+  }
+
+  const { email } = value;
+
+  try {
+    // 2. Check if user exists
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({
+        status: false,
+        message: "User not found",
+      });
+    }
+
+    // 3. Generate OTP
+    const otp = Math.floor(1000 + Math.random() * 9000).toString();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 mins
+
+    // 4. Save or update OTP
+    await ResetToken.findOneAndUpdate(
+      { email },
+      { otp, expiresAt },
+      { upsert: true, new: true }
+    );
+
+    // 5. Create transporter (use ENV variables)
+    const transporter = nodemailer.createTransport({
+      host: process.env.SMTP_HOST,
+      port: Number(process.env.SMTP_PORT),
+      secure: process.env.SMTP_PORT == 465, // true for 465
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
+      },
     });
 
-    const { error } = forgotPassSchema.validate(req.body);
-
-    if (error) {
-      return next(error);
-    }
+    // 6. Send email
     try {
-      const user = await User.findOne({ email });
-      if (!user) {
-        return res
-          .status(400)
-          .json({ status: false, message: "User not found" });
-      }
-
-      const otp = Math.floor(1000 + Math.random() * 9000).toString();
-      const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 mins
-
-      const token = await resetToken.findOneAndUpdate(
-        { email },
-        { otp, expiresAt },
-        { upsert: true, new: true },
-      );
-
-      const transporter = nodemailer.createTransport({
-        host: "smtp.hostinger.com",
-        port: 587,
-        secure: false,
-        auth: {
-          user: "info@vaishakhimatrimony.com", // your email address
-          pass: "K0U$uH!K28", // your app password
-        },
-      });
-
       await transporter.sendMail({
-        from: "info@vaishakhimatrimony.com",
+        from: `"Support Team" <${process.env.SMTP_USER}>`,
         to: email,
         subject: "Password Reset OTP",
-        text: `Your OTP for password reset is ${otp}.\nRequested at ${new Date().toLocaleString()}`,
+        text: `Your OTP is ${otp}. It will expire in 10 minutes.`,
       });
+    } catch (mailError) {
+      console.error("Mail Error:", mailError);
 
-      return res
-        .status(200)
-        .json({ status: true, message: "OTP sent to email" });
-    } catch (error) {
-      return next(error);
+      return res.status(500).json({
+        status: false,
+        message: "Failed to send OTP email",
+      });
     }
+
+    // 7. Success response
+    return res.status(200).json({
+      status: true,
+      message: "OTP sent successfully",
+    });
+
+  } catch (err) {
+    console.error("Forgot Password Error:", err);
+
+    return res.status(500).json({
+      status: false,
+      message: "Internal server error",
+    });
+  }
+
+    
   },
+
+  
+  
+  
 
   // Verify OTP
   async verifyResetOTP(req, res, next) {
