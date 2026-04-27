@@ -7,10 +7,7 @@ const dropdown = require("../models/dropdown");
 
 async function removeDuplicateValues() {
     try {
-        await mongoose.connect("mongodb+srv://umerfarooqdev:hireon123713@cluster0.sy63jcm.mongodb.net/", {
-            useNewUrlParser: true,
-            useUnifiedTopology: true,
-          });
+        await mongoose.connect("mongodb+srv://umerfarooqdev:hireon123713@cluster0.sy63jcm.mongodb.net/");
           console.log(dropdown);
           
         const duplicates = await dropdown.aggregate([

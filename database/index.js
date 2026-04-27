@@ -6,10 +6,7 @@ const dbConnect = async () => {
     // process.env.MONGODB_CONNECTION_STRING
     mongoose.set("strictQuery", false);
 
-    const conn = await mongoose.connect(Url, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    });
+    const conn = await mongoose.connect(Url);
     console.log(`Database connected to host: ${conn.connection.host}`);
   } catch (error) {
     console.log(`Error: ${error}`);

@@ -4,7 +4,7 @@ const VerificationCode = require("../models/verificationCode");
 const nodemailer = require("nodemailer");
 const User = require("../models/user");
 const ResetToken = require("../models/resetToken");
-const bcrypt = require("bcrypt");
+const bcrypt = require("bcryptjs");
 app.use(express.json());
 const Joi = require("joi");
 const { v4: uuidv4 } = require("uuid");
@@ -40,15 +40,15 @@ const verificationController = {
 
       console.log("Creating email transporter");
       let transporter = nodemailer.createTransport({
-        host: 'smtp.gmail.com',
+        host: "smtp.gmail.com",
         port: 465,
         secure: true,
         auth: {
-          user: '18cr231@gmail.com', // your email address
-          pass: 'ybul ovxm fssz rhst' // your app password
+          user: "18cr231@gmail.com", // your email address
+          pass: "ybul ovxm fssz rhst", // your app password
         },
         debug: true, // Enable debug logging
-        logger: true // Enable logging
+        logger: true, // Enable logging
       });
 
       console.log("Preparing mail options");
@@ -105,12 +105,12 @@ const verificationController = {
 
       console.log("Creating email transporter");
       let transporter = nodemailer.createTransport({
-        host: 'smtp.hostinger.com',
+        host: "smtp.hostinger.com",
         port: 587,
         secure: false,
         auth: {
-          user: 'info@vaishakhimatrimony.com', // your email address
-          pass: 'Temp@12345' // your app password
+          user: "info@vaishakhimatrimony.com", // your email address
+          pass: "Temp@12345", // your app password
         },
       });
 
@@ -151,7 +151,7 @@ const verificationController = {
 
       if (!cod) {
         const error = new Error(
-          "Incorrect verification code. Please double-check the code and try again."
+          "Incorrect verification code. Please double-check the code and try again.",
         );
         error.status = 400;
         console.error(`Error: ${error.message}`);
