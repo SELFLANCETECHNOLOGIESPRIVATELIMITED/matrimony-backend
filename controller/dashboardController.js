@@ -357,7 +357,7 @@ const dashboardController = {
           profileViews,
         },
         {
-          new: true,
+          returnDocument: "after",
         }
       );
       return res.status(200).json({
@@ -408,7 +408,7 @@ const dashboardController = {
           membershipExpiry:
             Date.now() + ExpiryInNumber * 30 * 24 * 60 * 60 * 1000,
         },
-        { new: true }
+        { returnDocument: "after" }
       ).populate({
         path: "membership",
         select:
@@ -442,7 +442,7 @@ const dashboardController = {
       const user = await User.findByIdAndUpdate(
         id,
         { isActive: activeStatus },
-        { new: true }
+        { returnDocument: "after" }
       ).populate({
         path: "membership",
         select:
@@ -476,7 +476,7 @@ const dashboardController = {
       const user = await User.findByIdAndUpdate(
         id,
         { isFeatured },
-        { new: true }
+        { returnDocument: "after" }
       ).populate({
         path: "membership",
         select:
@@ -697,7 +697,7 @@ const dashboardController = {
       // Remove password from updateData if it exists (password should be updated separately)
       delete updateData.password;
 
-      const updatedUser = await User.findByIdAndUpdate(id, updateData, { new: true });
+      const updatedUser = await User.findByIdAndUpdate(id, updateData, { returnDocument: "after" });
 
       if (!updatedUser) {
         return res.status(404).json({ success: false, message: "User not found" });

@@ -5,7 +5,7 @@ const User = require("../models/user");
 const Order = require("../models/order");
 const Subscription = require("../models/subscribtion");
 const crypto = require("crypto");
-const { Cashfree } = require("cashfree-pg");
+const { Cashfree, CFEnvironment } = require("cashfree-pg");
 
 function generateOrderId() {
   const uniqueId = crypto.randomBytes(16).toString("hex");
@@ -26,18 +26,35 @@ function getMembershipExpiry(duration) {
   return new Date(Date.now() + durationValue * 30 * 24 * 60 * 60 * 1000);
 }
 
+function createCashfreeClient(mode = "production") {
+  const isSandbox = String(mode).toLowerCase() === "sandbox";
+
+  const clientId = isSandbox
+    ? process.env.CASHFREE_TEST_KEY_ID
+    : process.env.CASHFREE_KEY_ID;
+  const clientSecret = isSandbox
+    ? process.env.CASHFREE_TEST_KEY_SECRET
+    : process.env.CASHFREE_KEY_SECRET;
+
+  if (!clientId || !clientSecret) {
+    const missingEnv = isSandbox
+      ? "CASHFREE_TEST_KEY_ID/CASHFREE_TEST_KEY_SECRET"
+      : "CASHFREE_KEY_ID/CASHFREE_KEY_SECRET";
+    throw new Error(`Missing Cashfree credentials: ${missingEnv}`);
+  }
+
+  const environment = isSandbox
+    ? CFEnvironment.SANDBOX
+    : CFEnvironment.PRODUCTION;
+
+  return new Cashfree(environment, clientId, clientSecret);
+}
+
 const createOrder = async (req, res) => {
   const { amount, customer_name, customer_id, customer_phone, customer_email } =
     req.body;
   try {
-    Cashfree.XClientId = process.env.CASHFREE_KEY_ID;
-    Cashfree.XClientSecret = process.env.CASHFREE_KEY_SECRET;
-    Cashfree.XEnvironment = Cashfree.Environment.PRODUCTION;
-    console.log(
-      process.env.CASHFREE_KEY_ID,
-      process.env.CASHFREE_KEY_SECRET,
-      Cashfree,
-    );
+    const cashfree = createCashfreeClient("production");
 
     var request = {
       order_amount: amount,
@@ -66,7 +83,7 @@ const createOrder = async (req, res) => {
       order_note: "",
     };
 
-    const response = await Cashfree.PGCreateOrder("2023-08-01", request);
+    const response = await cashfree.PGCreateOrder(request);
     res.status(200).json(response.data);
   } catch (error) {
     console.error(
@@ -80,14 +97,7 @@ const createTestOrder = async (req, res) => {
   const { amount, customer_name, customer_id, customer_phone, customer_email } =
     req.body;
   try {
-    Cashfree.XClientId = process.env.CASHFREE_TEST_KEY_ID;
-    Cashfree.XClientSecret = process.env.CASHFREE_TEST_KEY_SECRET;
-    Cashfree.XEnvironment = Cashfree.Environment.SANDBOX;
-    console.log(
-      process.env.CASHFREE_TEST_KEY_ID,
-      process.env.CASHFREE_TEST_KEY_SECRET,
-      Cashfree,
-    );
+    const cashfree = createCashfreeClient("sandbox");
 
     var request = {
       order_amount: amount,
@@ -116,7 +126,7 @@ const createTestOrder = async (req, res) => {
       order_note: "",
     };
 
-    const response = await Cashfree.PGCreateOrder("2023-08-01", request);
+    const response = await cashfree.PGCreateOrder(request);
     res.status(200).json(response.data);
   } catch (error) {
     console.log("-----Error creating order-----");
@@ -129,10 +139,10 @@ const createTestOrder = async (req, res) => {
   }
 };
 const verifyPayment = async (req, res) => {
-  let version = "2023-08-01";
-  const { order_id, membership, userId } = req.body;
+  const { order_id, membership, userId, payment_env } = req.body;
   try {
-    const response = await Cashfree.PGFetchOrder(version, order_id);
+    const cashfree = createCashfreeClient(payment_env);
+    const response = await cashfree.PGFetchOrder(order_id);
     console.log("Order fetched successfully:", response.data);
     if (response?.data) {
       if (
@@ -173,7 +183,7 @@ const verifyPayment = async (req, res) => {
             membershipExpiry,
             $push: { orders: newOrder._id },
           },
-          { new: true },
+          { returnDocument: "after" },
         ).populate("membership"); // Ensure to get the updated document back
 
         if (!updatedUser) {
@@ -191,8 +201,9 @@ const verifyPayment = async (req, res) => {
     }
     res.status(200).json(response.data);
   } catch (error) {
-    console.error("Error:", error.response.data.message);
-    res.status(500).json({ error: error.response.data.message });
+    const message = error?.response?.data?.message || error.message;
+    console.error("Error:", message);
+    res.status(500).json({ error: message });
   }
 };
 

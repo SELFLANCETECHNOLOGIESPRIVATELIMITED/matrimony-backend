@@ -282,7 +282,7 @@ const userAuthController = {
     await ResetToken.findOneAndUpdate(
       { email },
       { otp, expiresAt },
-      { upsert: true, new: true }
+      { upsert: true, returnDocument: "after" }
     );
 
     // 5. Create transporter (use ENV variables)
@@ -589,7 +589,7 @@ const userAuthController = {
         const user = await User.findByIdAndUpdate(
           userId,
           { $set: req.body },
-          { new: true },
+          { returnDocument: "after" },
         );
 
         if (!user) {

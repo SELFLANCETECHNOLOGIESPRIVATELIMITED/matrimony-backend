@@ -351,14 +351,14 @@ const userMatchController = {
       updatedSender = await User.findOneAndUpdate(
         { _id: senderId },
         { $addToSet: { sentInterests: receiverId } },
-        { new: true }, // Return the updated document
+        { returnDocument: "after" }, // Return the updated document
       );
 
       // Update the receiver's receivedInterests
       updatedReceiver = await User.findOneAndUpdate(
         { _id: receiverId },
         { $addToSet: { receivedInterests: senderId } },
-        { new: true }, // Return the updated document
+        { returnDocument: "after" }, // Return the updated document
       );
     } catch (error) {
       return next(error);
@@ -515,7 +515,7 @@ const userMatchController = {
           $pull: { receivedInterests: request.senderId },
           $push: { friends: request.senderId },
         },
-        { new: true },
+        { returnDocument: "after" },
       );
 
       await User.findByIdAndUpdate(
@@ -524,7 +524,7 @@ const userMatchController = {
           $pull: { sentInterests: receiverId },
           $push: { friends: receiverId },
         },
-        { new: true },
+        { returnDocument: "after" },
       );
 
       await MatchRequest.findOneAndDelete({ _id: requestId });

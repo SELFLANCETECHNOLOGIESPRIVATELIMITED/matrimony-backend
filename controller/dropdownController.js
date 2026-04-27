@@ -42,7 +42,7 @@ const dropdownController = {
     try {
       const { id } = req.params;
       const { value } = req.body;
-      const option = await DropdownOption.findByIdAndUpdate(id, { value }, { new: true });
+      const option = await DropdownOption.findByIdAndUpdate(id, { value }, { returnDocument: 'after' });
       res.status(200).json(option);
     } catch (err) {
       res.status(400).json({ message: err.message });
