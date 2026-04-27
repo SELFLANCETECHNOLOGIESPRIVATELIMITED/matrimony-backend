@@ -86,6 +86,17 @@ const io = new Server(server, {
     methods: ["GET", "POST"],
     credentials: true,
   },
+  transports: ["websocket", "polling"],
+  pingInterval: 25000,
+  pingTimeout: 60000,
+});
+
+io.engine.on("connection_error", (err) => {
+  console.error("Socket connection error:", {
+    code: err.code,
+    message: err.message,
+    origin: err.req?.headers?.origin,
+  });
 });
 
 io.on("connection", (socket) => {
@@ -94,6 +105,10 @@ io.on("connection", (socket) => {
   socket.on("join_room", (data) => {
     socket.join(data);
     console.log(`User with ID: ${socket.id} joined room: ${data}`);
+  });
+  socket.on("leave_room", (data) => {
+    socket.leave(data);
+    console.log(`User with ID: ${socket.id} left room: ${data}`);
   });
 
   socket.on("send_message", async (data) => {
@@ -140,8 +155,8 @@ io.on("connection", (socket) => {
     }
   });
 
-  socket.on("disconnect", () => {
-    console.log("User Disconnected", socket.id);
+  socket.on("disconnect", (reason) => {
+    console.log("User Disconnected", socket.id, reason);
   });
 });
 
