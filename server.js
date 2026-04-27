@@ -87,6 +87,11 @@ io.engine.on("connection_error", (err) => {
     code: err.code,
     message: err.message,
     origin: err.req?.headers?.origin,
+    method: err.req?.method,
+    url: err.req?.url,
+    transport: err.req?._query?.transport || err.req?.query?.transport,
+    upgradeHeader: err.req?.headers?.upgrade,
+    connectionHeader: err.req?.headers?.connection,
   });
 });
 
