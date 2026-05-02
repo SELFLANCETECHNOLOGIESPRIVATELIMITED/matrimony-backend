@@ -27,85 +27,19 @@ const userMatchController = {
       const limit = Math.max(parseInt(req.query.limit, 10) || 10, 1);
       const skip = (page - 1) * limit;
 
-      const {
-        partnerAge,
-        partnerMaritalStatus,
-        partnerHeight,
-        education,
-        partnerOccupation,
-        partnerMotherTongue,
-        partnerAnnualIncome,
-        partnerSect,
-        partnerCity,
-      } = user.partnerPreference || {};
-
       let filters = {};
 
       if (matchType === "newUsers") {
-        const oneYearAgo = new Date();
-        oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
-
-        const excludedUserIds = [
-          ...user.sentInterests,
-          ...user.receivedInterests,
-          ...user.friends,
-          userId,
-        ];
-
         filters = {
-          _id: { $nin: excludedUserIds },
+          _id: { $nin: [userId] },
           gender: gender,
-          createdAt: { $gte: oneYearAgo },
           isActive: true,
         };
       } else if (matchType === "match") {
-        const [minAge, maxAge] = (partnerAge || "")
-          .split("-")
-          .map((age) => parseInt(age, 10));
-        const [minIncome, maxIncome] = (partnerAnnualIncome || "")
-          .split("-")
-          .map((income) => {
-            if (income.includes("Lac")) {
-              return parseFloat(income) * 100000;
-            }
-            return parseFloat(income);
-          });
-
-        const baseMatchCriteria = {
-          gender: gender,
-          _id: { $nin: [userId] },
-        };
-
-        const flexibleMatchCriteria = {
-          $or: [
-            { age: { $gte: minAge || 0, $lte: maxAge || 100 } },
-            { occupation: partnerOccupation },
-            { city: partnerCity },
-          ],
-        };
-
-        if (partnerMaritalStatus) {
-          flexibleMatchCriteria.$or.push({
-            maritalStatus: partnerMaritalStatus,
-          });
-        }
-        if (education) {
-          flexibleMatchCriteria.$or.push({ highestDegree: education });
-        }
-        if (partnerMotherTongue) {
-          flexibleMatchCriteria.$or.push({ motherTongue: partnerMotherTongue });
-        }
-        if (minIncome !== undefined && maxIncome !== undefined) {
-          flexibleMatchCriteria.$or.push({
-            annualIncome: { $gte: minIncome, $lte: maxIncome },
-          });
-        }
-        if (partnerSect) {
-          flexibleMatchCriteria.$or.push({ sect: partnerSect });
-        }
-
         filters = {
-          $and: [baseMatchCriteria, flexibleMatchCriteria],
+          _id: { $nin: [userId] },
+          gender: gender,
+          isActive: true,
         };
       } else {
         return res.status(400).json({ message: "Invalid matchType" });
@@ -150,19 +84,13 @@ const userMatchController = {
       const userGender = user.gender;
       const targetGender = userGender === "male" ? "female" : "male";
 
-      const sevenDaysAgo = new Date();
-      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      const threeMonthsAgo = new Date();
+      threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
 
-      const excludedUserIds = [
-        ...user.sentInterests,
-        ...user.receivedInterests,
-        ...user.friends,
-        userId,
-      ];
       const filters = {
-        _id: { $nin: excludedUserIds },
+        _id: { $nin: [userId] },
         gender: targetGender,
-        createdAt: { $gte: sevenDaysAgo },
+        createdAt: { $gte: threeMonthsAgo },
         isActive: true,
       };
 
